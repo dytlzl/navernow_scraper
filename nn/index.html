@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>NAVER NOW MUSIC</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous" />
+    <style>
+#bar{
+  top: 1em;
+  width: 100%;
+  position: fixed;
+  z-index: 1;
+}
+#headline{
+  margin-top: 4em;
+}
+#modal-main {
+  text-align: center;
+  display: none;
+  bottom: 10px;
+  right: 10px;
+  position: fixed;
+  z-index: 3;
+}
+#modal-bg {
+  display: none;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.3);
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2;
+}
+.inline-block {
+  display: inline-block;
+  vertical-align: middle;
+}
+  </style>
+  </head>
+  <body>
+    <div id="bar">
+      <form name="js" class="text-center" onsubmit="return false;">
+        <input type="text" name="word" value="" class="form-control w-25 inline-block" onkeydown="senseEnterKey()">
+        <input type="button" class="btn btn-secondary inline-block" value="Search" onclick="search()">
+      </form>
+    </div>
+    <div id="headline" class="container"></div>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
+    <script>
+let latestId = 2147483647;
+let isReadyToReceive = false;
+let searchWord = '';
+const limit = 10;
+$('body').append(
+  $('<div>').attr({'id':'modal-bg'}),
+  $('<div>').attr({'id':'modal-main','class':'badge badge-primary text-wrap'}).append('Loading...')
+);
+function senseEnterKey(){
+    if(window.event.keyCode===13)search();
+}
+function search(){
+  searchWord = document.js.word.value;
+  $('#headline').remove();
+  $('body').append(
+    $('<div>').attr({'id':'headline','class':'container'})
+  );
+  latestId = 2147483647;
+  loadJsonData();
+}
+function loadJsonData(){
+  isReadyToReceive = false;
+  $('#modal-bg,#modal-main').fadeIn('slow');
+  $.ajax({
+    type: 'GET',
+    url: './api/',
+    data: {
+      latest_id: latestId,
+      limit: limit,
+      search_word: searchWord
+    },
+    dataType: 'json'
+  })
+  .then(
+    function(data) {
+      const baseUri = 'https://entertain.naver.com';
+      data.forEach(function(value){
+        $('<div>').attr({'class':'row mt-2'}).append(
+          $('<div>').attr({'class':'col shadow-sm rounded','style':'text-align: center;'}).append(
+            $('<a>').attr({'href':baseUri+value['uri']}).append(
+              $('<span>').attr({'class':'title'}).text(value['title']),
+              dealThumbnail(value['thumbnail'])
+            ),
+            $('<div>').attr({'class':'badge badge-primary text-wrap'}).text(value['time'])
+          ),
+          $('<div>').attr({'class':'col-7 ml-2 shadow-sm rounded'}).append(
+            $('<p>').text(value['text'])
+          )
+        ).appendTo($('#headline'));
+      });
+      $('#modal-bg,#modal-main').fadeOut('fast');
+      if(data.length === limit){
+        latestId = data[limit - 1]['id'];
+        isReadyToReceive = true;
+      }
+    },
+    function() {
+      console.log('Could not load.');
+    }
+  );
+}
+function dealThumbnail(thumbnail){
+  if(thumbnail === 'NULL'){
+    return '<br />';
+  } else{
+    return $('<div>').append($('<img>').attr({'src':thumbnail,'class':'img-thumbnail'}));
+  }
+}
+loadJsonData();
+$(window).on('scroll', function() {
+  if(isReadyToReceive && $(window).height()+$(window).scrollTop()-$(document).height() > -0.5*$(window).height()){
+    loadJsonData();
+  }
+});
+    </script>
+  </body>
+</html>
+
